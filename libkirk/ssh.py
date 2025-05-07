@@ -74,7 +74,6 @@ class SSHSUT(SUT):
         self._password = None
         self._key_file = None
         self._sudo = False
-        self._known_hosts = None
         self._session_sem = None
         self._stop = False
         self._conn = None
@@ -95,7 +94,6 @@ class SSHSUT(SUT):
             "key_file": "private key location",
             "reset_cmd": "command to reset the remote SUT",
             "sudo": "use sudo to access to root shell (default: 0)",
-            "known_hosts": "path to custom known_hosts file (optional)",
         }
 
     async def _reset(self, iobuffer: IOBuffer = None) -> None:
@@ -163,7 +161,6 @@ class SSHSUT(SUT):
         self._user = kwargs.get("user", "root")
         self._password = kwargs.get("password", None)
         self._key_file = kwargs.get("key_file", None)
-        self._known_hosts = kwargs.get("known_hosts", None)
 
         try:
             self._port = int(kwargs.get("port", "22"))
@@ -199,15 +196,13 @@ class SSHSUT(SUT):
                     host=self._host,
                     port=self._port,
                     username=self._user,
-                    client_keys=[priv_key],
-                    known_hosts=self._known_hosts)
+                    client_keys=[priv_key])
             else:
                 self._conn = await asyncssh.connect(
                     host=self._host,
                     port=self._port,
                     username=self._user,
-                    password=self._password,
-                    known_hosts=self._known_hosts)
+                    password=self._password)
 
             # read maximum number of sessions and limit `run_command`
             # concurrent calls to that by using a semaphore
@@ -230,8 +225,7 @@ class SSHSUT(SUT):
         self._stop = True
         try:
             if self._channels:
-                self._logger.info("Killing %d process(es)",
-                                  len(self._channels))
+                self._logger.info("Killing %d process(es)", len(self._channels))
 
                 for proc in self._channels:
                     proc.kill()
